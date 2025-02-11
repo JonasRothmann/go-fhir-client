@@ -1,0 +1,48 @@
+version: "3.8"
+name: "fhir-client"
+
+services:
+  # HAPI FHIR Server
+  fhir-server:
+    image: hapiproject/hapi:latest
+    container_name: fhir-server
+    volumes:
+      - ./data/hapi:/data/hapi
+    environment:
+      - SPRING_CONFIG_LOCATION=file:///data/hapi/application.yaml
+      #- SPRING_DATASOURCE_URL=jdbc:postgresql://fhir-db:5432/fhir
+      #- SPRING_DATASOURCE_USERNAME=postgres
+      #- SPRING_DATASOURCE_PASSWORD=postgres
+      #- SPRING_DATASOURCE_DRIVER-CLASS-NAME=org.postgresql.Driver
+      #- HAPI_FHIR_SERVER_ADDRESS=http://fhir-server:8080/fhir
+      #- HAPI_FHIR_FORCE_CREATE_DB_TABLES=true
+      #- HAPI_FHIR_SECURITY_ENABLED=true
+      #- HAPI_FHIR_SECURITY_USERNAME=golang-fhir-client
+      #- HAPI_FHIR_SECURITY_PASSWORD=password567
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - fhir-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:latest
+    container_name: fhir-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fhir
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fhir-network
+
+volumes:
+  postgres_data:
+  hapi-data:
+
+networks:
+  fhir-network:
+    driver: bridge
