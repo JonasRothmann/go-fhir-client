@@ -15,3 +15,7 @@ func MustTesting[T any](t *testing.T, obj T, err error) T {
 	}
 	return obj
 }
+
+func Ptr[T any](v T) *T {
+	return &v
+}

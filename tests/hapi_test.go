@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
+	fhirclient "github.com/jonasrothmann/go-fhir-client"
 	"github.com/jonasrothmann/go-fhir-client/query"
-	"github.com/jonasrothmann/go-fhir-client/resources"
+	v5 "github.com/jonasrothmann/go-fhir-client/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
 )
@@ -15,12 +16,12 @@ func TestHAPI(t *testing.T) {
 	client := HAPIClient
 
 	tests := []struct {
-		patient       resources.Patient
+		patient       v5.Patient
 		expectedError error
 	}{
 		{
-			patient: resources.Patient{
-				Active: true,
+			patient: v5.Patient{
+				Active: fhirclient.Ptr(true),
 			},
 			expectedError: nil,
 		},
@@ -36,7 +37,7 @@ func TestHAPI(t *testing.T) {
 
 		log.Printf("%+v", createdPatient)
 
-		readPatient, err := query.Read[resources.Patient](ctx, client, createdPatient.ID, nil)
+		readPatient, err := query.Read[v5.Patient](ctx, client, *createdPatient.Id, nil)
 		require.NoError(t, err)
 		require.NotNil(t, readPatient)
 		require.Equal(t, readPatient, createdPatient)

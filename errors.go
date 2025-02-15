@@ -3,16 +3,16 @@ package fhirclient
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
-	datatypes "github.com/jonasrothmann/go-fhir-client/data-types"
 	"github.com/rs/zerolog/log"
 )
 
 type FhirError struct {
 	//Message   string
-	OpOutcome datatypes.OperationOutcome
+	OpOutcome fmt.Stringer
 }
 
 func NewError(r io.Reader) (err FhirError) {

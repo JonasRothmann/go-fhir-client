@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	datatypes "github.com/jonasrothmann/go-fhir-client/datatypes"
 )
 
 var PrimitiveTypes = map[string]any{
@@ -34,9 +32,9 @@ var PrimitiveTypes = map[string]any{
 
 // http://hl7.org/fhir/StructureDefinition/base64Binary
 type Base64binary struct {
-	Id        *string               `bson:"id,omitempty" json:"id,omitempty"`
-	Extension []datatypes.Extension `bson:"extension,omitempty" json:"extension,omitempty"`
-	Value     *string               `bson:"value,omitempty" json:"value,omitempty"`
+	Id *string `bson:"id,omitempty" json:"id,omitempty"`
+	//Extension []string `bson:"extension,omitempty" json:"extension,omitempty"`
+	Value *string `bson:"value,omitempty" json:"value,omitempty"`
 }
 
 // Canonical represents a canonical URL with optional version

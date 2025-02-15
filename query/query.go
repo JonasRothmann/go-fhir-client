@@ -9,7 +9,7 @@ import (
 )
 
 // https://www.hl7.org/fhir/http.html#read
-func Read[T fhirclient.Resource](ctx context.Context, client *fhirclient.Client, id datatypes.ID, summary *SearchSummary) (result T, err error) {
+func Read[T fhirclient.Resource](ctx context.Context, client *fhirclient.Client, id string, summary *SearchSummary) (result T, err error) {
 	url := url.URL{
 		Path: fmt.Sprintf("/%s/%s", result.ResourceType(), id),
 	}

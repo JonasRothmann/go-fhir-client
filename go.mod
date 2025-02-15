@@ -6,6 +6,7 @@ require golang.org/x/text v0.14.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect

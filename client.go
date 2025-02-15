@@ -45,3 +45,5 @@ func WithCache(size int) Option {
 type Queryable interface {
 	GetType()
 }
+
+type Empty struct{}
