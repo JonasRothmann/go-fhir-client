@@ -18,7 +18,7 @@ const (
 )
 
 func (s StructureDefinitionKind) Path() string {
-	return fmt.Sprintf("github.com/jonasrothmann/go-fhir-client/v5")
+	return fmt.Sprintf("github.com/jonasrothmann/go-fhir-client/r5")
 }
 
 func (s StructureDefinitionKind) Name() string {
@@ -35,6 +35,7 @@ func (s StructureDefinitionKind) Name() string {
 }
 
 type StructureDefinition struct {
+	Id           *string                 `json:"id,omitempty"`
 	ResourceType string                  `json:"resourceType"`
 	Name         *string                 `json:"name,omitempty"`
 	Url          *string                 `json:"url,omitempty"`
@@ -391,6 +392,16 @@ type CodeSystemConcept struct {
 	Concept           []interface{}                  `bson:"concept,omitempty" json:"concept,omitempty"`
 }
 
+func (c CodeSystemConcept) GetProperty(name string) (parent CodeSystemConceptProperty, ok bool) {
+	for _, property := range c.Property {
+		if string(property.Code) == name {
+			return property, true
+		}
+	}
+
+	return parent, false
+}
+
 type CodeSystemConceptDesignation struct {
 	Id                *string      `bson:"id,omitempty" json:"id,omitempty"`
 	Extension         []Extension  `bson:"extension,omitempty" json:"extension,omitempty"`
@@ -402,11 +413,28 @@ type CodeSystemConceptDesignation struct {
 }
 
 type CodeSystemConceptProperty struct {
-	Id                *string     `bson:"id,omitempty" json:"id,omitempty"`
-	Extension         []Extension `bson:"extension,omitempty" json:"extension,omitempty"`
+	// Unique id for inter-element referencing
+	Id *string `bson:"id,omitempty" json:"id,omitempty"`
+	// Additional content defined by implementations
+	Extension []Extension `bson:"extension,omitempty" json:"extension,omitempty"`
+	// Extensions that cannot be ignored even if unrecognized
 	ModifierExtension []Extension `bson:"modifierExtension,omitempty" json:"modifierExtension,omitempty"`
-	Code              custom.Code `bson:"code" json:"code"`
-	Value             custom.Code `bson:"value" json:"value"`
+	// Reference to CodeSystem.property.code
+	Code custom.Code `bson:"code" json:"code"`
+	// Value of the property for this concept
+	ValueCode *custom.Code `bson:"valueCode,omitempty" json:"valueCode,omitempty"`
+	// Value of the property for this concept
+	ValueCoding *Coding `bson:"valueCoding,omitempty" json:"valueCoding,omitempty"`
+	// Value of the property for this concept
+	ValueString *string `bson:"valueString,omitempty" json:"valueString,omitempty"`
+	// Value of the property for this concept
+	ValueInteger *int32 `bson:"valueInteger,omitempty" json:"valueInteger,omitempty"`
+	// Value of the property for this concept
+	ValueBoolean *bool `bson:"valueBoolean,omitempty" json:"valueBoolean,omitempty"`
+	// Value of the property for this concept
+	ValueDateTime *custom.DateTime `bson:"valueDateTime,omitempty" json:"valueDateTime,omitempty"`
+	// Value of the property for this concept
+	ValueDecimal *json.Number `bson:"valueDecimal,omitempty" json:"valueDecimal,omitempty"`
 }
 
 func (c CodeSystem) ResourceType() string {

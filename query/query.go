@@ -20,9 +20,11 @@ func Read[T fhirclient.Resource](ctx context.Context, client *fhirclient.Client,
 	}
 	url.RawQuery = q.Encode()
 
-	_, err = client.HttpClient.GetWithContext(ctx, url, &result)
+	if _, err = client.HttpClient.GetWithContext(ctx, url, &result); err != nil {
+		return result, err
+	}
 
-	return result, err
+	return result, nil
 }
 
 /*

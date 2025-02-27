@@ -1,0 +1,62 @@
+// GENERATED CODE – DO NOT EDIT!
+
+package valuesets
+
+/*
+Composed of following code systems:
+- http://hl7.org/fhir/operation-outcome
+*/type OperationOutcomeCodes string
+
+const (
+	OperationOutcomeCodesErrorMultipleMatchesExistForTheConditionalDelete                      OperationOutcomeCodes = "DELETE_MULTIPLE_MATCHES"
+	OperationOutcomeCodesYouMustAuthenticateBeforeYouCanUseThisService                         OperationOutcomeCodes = "MSG_AUTH_REQUIRED"
+	OperationOutcomeCodesBadSyntaxSMustBeAs                                                    OperationOutcomeCodes = "MSG_BAD_FORMAT"
+	OperationOutcomeCodesBadSyntaxInS                                                          OperationOutcomeCodes = "MSG_BAD_SYNTAX"
+	OperationOutcomeCodesUnableToParseFeedEntryContentTypeS                                    OperationOutcomeCodes = "MSG_CANT_PARSE_CONTENT"
+	OperationOutcomeCodesUnableToParseFeedRootElementNameS                                     OperationOutcomeCodes = "MSG_CANT_PARSE_ROOT"
+	OperationOutcomeCodesNewResourceCreated                                                    OperationOutcomeCodes = "MSG_CREATED"
+	OperationOutcomeCodesTheDateValueSIsNotInTheCorrectFormatXmlDateFormatRequired             OperationOutcomeCodes = "MSG_DATE_FORMAT"
+	OperationOutcomeCodesThisResourceHasBeenDeleted                                            OperationOutcomeCodes = "MSG_DELETED"
+	OperationOutcomeCodesResourceDeleted                                                       OperationOutcomeCodes = "MSG_DELETED_DONE"
+	OperationOutcomeCodesTheResourceSHasBeenDeleted                                            OperationOutcomeCodes = "MSG_DELETED_ID"
+	OperationOutcomeCodesDuplicateIdSForResourceTypeS                                          OperationOutcomeCodes = "MSG_DUPLICATE_ID"
+	OperationOutcomeCodesErrorParsingResourceXmlS                                              OperationOutcomeCodes = "MSG_ERROR_PARSING"
+	OperationOutcomeCodesIdSHasAnInvalidCharacterS                                             OperationOutcomeCodes = "MSG_ID_INVALID"
+	OperationOutcomeCodesIdSTooLongLengthLimit36                                               OperationOutcomeCodes = "MSG_ID_TOO_LONG"
+	OperationOutcomeCodesIdNotAccepted                                                         OperationOutcomeCodes = "MSG_INVALID_ID"
+	OperationOutcomeCodesJsonSourceForAResourceShouldStartWithAnObject                         OperationOutcomeCodes = "MSG_JSON_OBJECT"
+	OperationOutcomeCodesUnableToResolveLocalReferenceToResourceS                              OperationOutcomeCodes = "MSG_LOCAL_FAIL"
+	OperationOutcomeCodesResourceIdSDoesNotExist                                               OperationOutcomeCodes = "MSG_NO_EXIST"
+	OperationOutcomeCodesNoResourceFoundMatchingTheQueryS                                      OperationOutcomeCodes = "MSG_NO_MATCH"
+	OperationOutcomeCodesNoModuleCouldBeFoundToHandleTheRequestS                               OperationOutcomeCodes = "MSG_NO_MODULE"
+	OperationOutcomeCodesNoSummaryForThisResource                                              OperationOutcomeCodes = "MSG_NO_SUMMARY"
+	OperationOutcomeCodesOperationSNotAllowedForResourceSDueToLocalConfiguration               OperationOutcomeCodes = "MSG_OP_NOT_ALLOWED"
+	OperationOutcomeCodesUnknownChainedParameterNameS                                          OperationOutcomeCodes = "MSG_PARAM_CHAINED"
+	OperationOutcomeCodesParameterSContentIsInvalid                                            OperationOutcomeCodes = "MSG_PARAM_INVALID"
+	OperationOutcomeCodesParameterSModifierIsInvalid                                           OperationOutcomeCodes = "MSG_PARAM_MODIFIER_INVALID"
+	OperationOutcomeCodesParameterSIsNotAllowedToRepeat                                        OperationOutcomeCodes = "MSG_PARAM_NO_REPEAT"
+	OperationOutcomeCodesParameterSNotUnderstood                                               OperationOutcomeCodes = "MSG_PARAM_UNKNOWN"
+	OperationOutcomeCodesUnableToResolveLocalReferenceToResourceS2                             OperationOutcomeCodes = "MSG_REMOTE_FAIL"
+	OperationOutcomeCodesResourcesWithIdentityExampleCannotBeDeletedForTestingTrainingPurposes OperationOutcomeCodes = "MSG_RESOURCE_EXAMPLE_PROTECTED"
+	OperationOutcomeCodesUnableToAllocateResourceId                                            OperationOutcomeCodes = "MSG_RESOURCE_ID_FAIL"
+	OperationOutcomeCodesResourceIdMismatch                                                    OperationOutcomeCodes = "MSG_RESOURCE_ID_MISMATCH"
+	OperationOutcomeCodesResourceIdMissing                                                     OperationOutcomeCodes = "MSG_RESOURCE_ID_MISSING"
+	OperationOutcomeCodesNotAllowedToSubmitAResourceForThisOperation                           OperationOutcomeCodes = "MSG_RESOURCE_NOT_ALLOWED"
+	OperationOutcomeCodesAResourceIsRequired                                                   OperationOutcomeCodes = "MSG_RESOURCE_REQUIRED"
+	OperationOutcomeCodesResourceTypeMismatch                                                  OperationOutcomeCodes = "MSG_RESOURCE_TYPE_MISMATCH"
+	OperationOutcomeCodesUnknownSortParameterNameS                                             OperationOutcomeCodes = "MSG_SORT_UNKNOWN"
+	OperationOutcomeCodesDuplicateIdentifierInTransactionS                                     OperationOutcomeCodes = "MSG_TRANSACTION_DUPLICATE_ID"
+	OperationOutcomeCodesMissingIdentifierInTransactionAnEntryIdMustBeProvided                 OperationOutcomeCodes = "MSG_TRANSACTION_MISSING_ID"
+	OperationOutcomeCodesUnhandledXmlNodeTypeS                                                 OperationOutcomeCodes = "MSG_UNHANDLED_NODE_TYPE"
+	OperationOutcomeCodesUnknownContentSAtS                                                    OperationOutcomeCodes = "MSG_UNKNOWN_CONTENT"
+	OperationOutcomeCodesUnknownFhirHttpOperation                                              OperationOutcomeCodes = "MSG_UNKNOWN_OPERATION"
+	OperationOutcomeCodesResourceTypeSNotRecognised                                            OperationOutcomeCodes = "MSG_UNKNOWN_TYPE"
+	OperationOutcomeCodesExistingResourceUpdated                                               OperationOutcomeCodes = "MSG_UPDATED"
+	OperationOutcomeCodesVersionAwareUpdatesAreRequiredForThisResource                         OperationOutcomeCodes = "MSG_VERSION_AWARE"
+	OperationOutcomeCodesUpdateConflictServerCurrentVersionSClientVersionReferencedS           OperationOutcomeCodes = "MSG_VERSION_AWARE_CONFLICT"
+	OperationOutcomeCodesVersionSpecificUrlNotRecognised                                       OperationOutcomeCodes = "MSG_VERSION_AWARE_URL"
+	OperationOutcomeCodesThisDoesNotAppearToBeAfhirElementOrResourceWrongNamespaceS            OperationOutcomeCodes = "MSG_WRONG_NS"
+	OperationOutcomeCodesErrorMultipleMatchesExistForSSearchParametersS                        OperationOutcomeCodes = "SEARCH_MULTIPLE"
+	OperationOutcomeCodesErrorNoProcessableSearchFoundForSSearchParametersS                    OperationOutcomeCodes = "SEARCH_NONE"
+	OperationOutcomeCodesErrorMultipleMatchesExistForTheConditionalUpdate                      OperationOutcomeCodes = "UPDATE_MULTIPLE_MATCHES"
+)

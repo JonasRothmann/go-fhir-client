@@ -1,10 +1,15 @@
 package fhirclient
 
-import "testing"
+import (
+	"fmt"
+	"os"
+	"testing"
+)
 
 func Must[T any](obj T, err error) T {
 	if err != nil {
-		panic(err)
+		fmt.Print(err.Error())
+		os.Exit(1)
 	}
 	return obj
 }

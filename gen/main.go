@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,27 +10,32 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/dave/jennifer/jen"
 	fhirclient "github.com/jonasrothmann/go-fhir-client"
 	"github.com/jonasrothmann/go-fhir-client/custom"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stoewer/go-strcase"
 	"github.com/valyala/fastjson"
+	"golang.org/x/sync/errgroup"
 )
+
+var errNotEnoughElements = errors.New("not enough elements")
 
 func init() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
 
 var (
-	cwd       = must(os.Getwd())
-	outDir    = path.Join(cwd, "../v5")
-	jsonDir   = path.Join(cwd, "fhir")
-	customDir = path.Join(cwd, "../custom")
-	//valuesetsDir = path.Join(outDir, "valuesets")
-	dirs = []string{outDir, jsonDir}
+	cwd          = must(os.Getwd())
+	outDir       = path.Join(cwd, "../r5")
+	jsonDir      = path.Join(cwd, "fhir")
+	customDir    = path.Join(cwd, "../custom")
+	valuesetsDir = path.Join(outDir, "valuesets")
+	dirs         = []string{outDir, jsonDir, valuesetsDir}
 )
 
 var fhirTypes = jenTypeIdentifiersFromMap(
@@ -37,6 +43,7 @@ var fhirTypes = jenTypeIdentifiersFromMap(
 	map[string]any{
 		"CodeableReference": custom.CodeableReference[fhirclient.Resource]{},
 		"Reference":         custom.Reference[fhirclient.Resource]{},
+		"Canonical":         custom.Canonical[any](""),
 	},
 )
 
@@ -84,7 +91,7 @@ func main() {
 			}
 			if sd.Name != nil {
 				structureDefinitions[*sd.Name] = sd
-				log.Debug().Str("file", filePath).Str("name", *sd.Name).Msg("Parsed StructureDefinition")
+				//log.Debug().Str("file", filePath).Str("name", *sd.Name).Msg("Parsed StructureDefinition")
 			}
 		case "Bundle":
 			var bundle Bundle
@@ -110,7 +117,7 @@ func main() {
 
 					if sd.Name != nil {
 						structureDefinitions[*sd.Name] = sd
-						log.Debug().Str("file", filePath).Str("name", *sd.Name).Msg("Parsed StructureDefinition")
+						//log.Debug().Str("file", filePath).Str("name", *sd.Name).Msg("Parsed StructureDefinition")
 					}
 				case "ValueSet":
 					var vs ValueSet
@@ -120,7 +127,7 @@ func main() {
 
 					if vs.Name != nil {
 						valuesets[*vs.Name] = vs
-						log.Debug().Str("file", filePath).Str("name", *vs.Name).Msg("Parsed ValueSet")
+						//log.Debug().Str("file", filePath).Str("name", *vs.Name).Msg("Parsed ValueSet")
 					}
 				}
 			}
@@ -147,16 +154,61 @@ func main() {
 			statement := &jen.Statement{}
 			statement.Id(name)
 
-			fhirTypes[name] = statement
+			fhirTypes[name] = GenStatement{
+				statement: statement,
+			}
 		}
 	}
 	log.Debug().Msgf("following structs are already defined - skipping: %s", strings.Join(skippedSds, ", "))
 
-	// Generate Go files from the collected StructureDefinitions.
+	ctx := context.Background()
+	g, ctx := errgroup.WithContext(ctx)
+	//g.SetLimit(25)
+
 	for name, sd := range structureDefinitions {
-		if err := generateStructFromStructureDefinition(sd); err != nil {
-			log.Error().Err(err).Msgf("Failed to generate struct for %s", name)
-		}
+		g.Go(func() error {
+			err := generateStructFromStructureDefinition(sd)
+
+			if err != nil {
+				if errors.Is(err, errNotEnoughElements) {
+					log.Error().Err(err).Msgf("Failed to generate struct for %s", name)
+				} else {
+					return errors.Wrapf(err, "Failed to generate struct for %s", name)
+				}
+			}
+
+			return nil
+		})
+	}
+
+	for name, vs := range valuesets {
+		g.Go(func() error {
+			f := jen.NewFile("valuesets")
+			f.HeaderComment("GENERATED CODE – DO NOT EDIT!")
+
+			// TODO: Fix performance bottleneck
+			now := time.Now()
+			e, err := vs.generateEnum(ctx)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to generate valueset for %s", name)
+			}
+			log.Debug().Msgf("elapsed: %s", time.Now().Sub(now).String())
+
+			statement := e.generateStatement()
+			f.Add(statement)
+
+			filename := path.Join(valuesetsDir, fmt.Sprintf("%s.go", strcase.LowerCamelCase(name)))
+			if err := f.Save(filename); err != nil {
+				return errors.Wrapf(err, "error saving file %s", filename)
+			}
+			log.Info().Str("valueset", filename).Msg("Generated Go source")
+
+			return nil
+		})
+	}
+
+	if err = g.Wait(); err != nil {
+		log.Error().Err(err).Msg("errgroup failed")
 	}
 
 	// might not be needed
@@ -203,7 +255,7 @@ func generateStructFromStructureDefinition(sd StructureDefinition) error {
 		log.Fatal().Msg("Unexpected")
 	}
 
-	f = jen.NewFile("v5")
+	f = jen.NewFile("r5")
 	dir = outDir
 
 	f.HeaderComment("GENERATED CODE – DO NOT EDIT!")
@@ -212,14 +264,36 @@ func generateStructFromStructureDefinition(sd StructureDefinition) error {
 	}
 
 	if len(sd.Snapshot.Element) < 2 {
-		return fmt.Errorf("not enough elements in snapshot for %s", *sd.Name)
+		return errors.Wrapf(errNotEnoughElements, "in element %s", *sd.Name)
 	}
 
 	structFields := map[string][]jen.Code{}
 	additionalStatements := []*jen.Statement{}
 
+	elems := []ElementDefinition{}
 	for _, elem := range sd.Snapshot.Element[1:] {
-		structName, fieldName := namesFromPath(*sd.Name, elem.Path)
+		if strings.Contains(*elem.Id, ":") {
+			log.Debug().Msgf("skipped id: %s because it contains colon", *elem.Id)
+			continue
+		}
+
+		if strings.HasSuffix(elem.Path, "[x]") {
+			path, _ := strings.CutSuffix(elem.Path, "[x]")
+			for _, t := range elem.Type {
+				newElem := elem
+				newElem.Path = path + strcase.UpperCamelCase(string(t.Code))
+				newElem.Type = []ElementDefinitionType{t}
+				newElem.Min = nil
+
+				elems = append(elems, newElem)
+			}
+		} else {
+			elems = append(elems, elem)
+		}
+	}
+
+	for _, elem := range elems {
+		structName, fieldName := namesFromPath(*sd.Name, elem.Path, elem.SliceName)
 		tagFieldName := strcase.LowerCamelCase(fieldName)
 
 		statement := jen.Comment(generateElementComment(elem)).Line().Id(fieldName)
@@ -241,12 +315,11 @@ func generateStructFromStructureDefinition(sd StructureDefinition) error {
 		if min == 0 {
 			statement.Tag(map[string]string{
 				"json": tagFieldName + ",omitempty",
-				"bson": tagFieldName + ",omitempty",
+				//"bson": tagFieldName + ",omitempty",
 			})
 		} else {
 			statement.Tag(map[string]string{
 				"json": tagFieldName,
-				"bson": tagFieldName,
 			})
 		}
 
@@ -264,15 +337,20 @@ func generateStructFromStructureDefinition(sd StructureDefinition) error {
 		f.Type().Id(structName).Struct(fields...).Line()
 	}
 
+	mainStructName := strcase.UpperCamelCase(*sd.Name)
+	mainStructParam := strings.ToLower(string(mainStructName[0]))
+	otherStructName := fmt.Sprintf("Other%s", mainStructName)
+
+	f.Add(
+		jen.Type().Id(otherStructName).Id(mainStructName).Line(),
+	)
+
 	for _, statement := range additionalStatements {
 		f.Add(*statement...)
 	}
 
-	mainStructName := strcase.UpperCamelCase(*sd.Name)
-	mainStructParam := strings.ToLower(string(mainStructName[0]))
-
 	implementations := map[string]string{
-		"ResourceType": sd.ResourceType,
+		"ResourceType": *sd.Name,
 		//"Short": *sd.Short,
 		//"Definition": *sd.Short,
 	}
@@ -284,11 +362,18 @@ func generateStructFromStructureDefinition(sd StructureDefinition) error {
 		)
 	}
 
+	f.Add(
+		jen.Line(),
+		genFuncMarshalJSON(mainStructParam, mainStructName, otherStructName),
+		jen.Line().Line(),
+		genFuncUnmarshal(mainStructName),
+	)
+
 	filename := path.Join(dir, fmt.Sprintf("%s_%s.go", prefix, strcase.LowerCamelCase(fileName)))
 	if err := f.Save(filename); err != nil {
 		return fmt.Errorf("error saving file %s: %w", filename, err)
 	}
-	log.Info().Str("file", filename).Msg("Generated Go source")
+	//log.Info().Str("file", filename).Msg("Generated Go source")
 	return nil
 }
 
@@ -310,7 +395,7 @@ func addTypeIdentifier(statement *jen.Statement, elem ElementDefinition, baseNam
 			log.Debug().Msgf("%s", structName)
 		}
 
-		structName, fieldName := namesFromPath(baseName, elem.Path)
+		structName, fieldName := namesFromPath(baseName, elem.Path, elem.SliceName)
 		statement.Id(strings.Join([]string{structName, fieldName}, ""))
 
 		return
@@ -319,19 +404,39 @@ func addTypeIdentifier(statement *jen.Statement, elem ElementDefinition, baseNam
 	if datatype, ok := fhirTypes[code]; ok {
 		var targets []string
 		if targetProfiles != nil && len(targetProfiles) > 0 {
-			targets = make([]string, len(targetProfiles))
-			for i, url := range targetProfiles {
-				targets[i] = strings.TrimPrefix(string(url), "http://hl7.org/fhir/StructureDefinition/")
+			targets = []string{}
+			for _, url := range targetProfiles {
+				str := strings.TrimPrefix(string(url), "http://hl7.org/fhir/StructureDefinition/")
+
+				// a blacklist is def not the way to go
+				if str == "vitalsigns" {
+					continue
+				}
+
+				// TODO: Handle this more gracefully than just continuing
+				if slices.Contains(targets, str) {
+					log.Debug().Msgf("%s already in targets", str)
+					continue
+				}
+
+				targets = append(targets, str)
 			}
 		}
 
-		if len(*datatype) == 0 {
+		if len(*datatype.statement) == 0 {
 			log.Fatal().Msgf("expected datatype len > 0 on code %s", code)
 		}
 
-		statement.Add(*datatype...)
+		statement.Add(*datatype.statement...)
 
-		if len(targets) == 1 {
+		if len(targets) == 0 {
+			if datatype.generic != nil {
+				statement.Types(
+					statementFromType(*datatype.generic),
+				)
+			}
+		} else if len(targets) == 1 {
+			log.Debug().Msg(targets[0])
 			statement.Types(
 				jen.Id(targets[0]),
 			)
@@ -357,22 +462,25 @@ func addTypeIdentifier(statement *jen.Statement, elem ElementDefinition, baseNam
 
 			additionalStatements = append(additionalStatements, additionalStatement)
 
-			statement.Types(
-				jen.Id(enumName),
-			)
+			if datatype.generic != nil {
+				statement.Types(
+					jen.Id(enumName),
+				)
+			}
 		}
 	} else {
 		statement.Id(code)
 	}
 
-	/*for _, stmt := range additionalStatements {
-		log.Debug().Msgf("%s", stmt.GoString())
-	}*/
-
 	return additionalStatements
 }
 
-func namesFromPath(id, p string) (structName string, fieldName string) {
+func isGeneric(group *jen.Group) bool {
+	// TODO: this is such a hacky way to do this lol
+	t := reflect.ValueOf(*group)
+	return strings.HasPrefix(t.String(), "{name:types")
+}
+func namesFromPath(id, p string, sliceName *string) (structName string, fieldName string) {
 	p = strings.ReplaceAll(p, "[x]", "")
 	parts := strings.Split(p, ".")
 
@@ -382,6 +490,10 @@ func namesFromPath(id, p string) (structName string, fieldName string) {
 		structName += strcase.UpperCamelCase(part)
 	}
 	fieldName = strcase.UpperCamelCase(parts[len(parts)-1])
+
+	if sliceName != nil {
+		structName += strcase.UpperCamelCase(*sliceName)
+	}
 
 	return strcase.UpperCamelCase(structName), fieldName
 }
@@ -412,38 +524,61 @@ func must[T any](val T, err error) T {
 
 type empty struct{}
 
-func jenTypeIdentifiersFromMap(inputs ...map[string]any) map[string]*jen.Statement {
+type GenStatement struct {
+	statement *jen.Statement
+	generic   *string
+}
+
+func jenTypeIdentifiersFromMap(inputs ...map[string]any) map[string]GenStatement {
 	input := merge(inputs...)
 
-	result := make(map[string]*jen.Statement, len(input))
+	result := make(map[string]GenStatement, len(input))
 	for key, val := range input {
-		statement := &jen.Statement{}
+		g := GenStatement{
+			statement: &jen.Statement{},
+		}
 
 		t := reflect.TypeOf(val)
 
 		if t.PkgPath() == "" {
-			statement.Id(t.Name())
+			g.statement.Id(t.Name())
 		} else {
 			parts := strings.Split(t.Name(), "[")
 			name := t.Name()
+
 			if len(parts) > 1 {
-				// TODO: Anything to do if generics
-				//generic, isGeneric := strings.CutSuffix(parts[1], "]")
+				generic, isGeneric := strings.CutSuffix(parts[1], "]")
+				if !isGeneric {
+					log.Fatal().Str("name", name).Msg("unexpected missing generic")
+				}
+				g.generic = &generic
 
 				name = parts[0]
 			}
 
-			if t.PkgPath() == reflect.TypeOf(fhirclient.Empty{}).PkgPath()+"/v5" {
-				statement.Id(name)
+			if t.PkgPath() == reflect.TypeOf(fhirclient.Empty{}).PkgPath()+"/r5" {
+				g.statement.Id(name)
 			} else {
-				statement.Qual(t.PkgPath(), name)
+				g.statement.Qual(t.PkgPath(), name)
 			}
 		}
 
-		result[key] = statement
+		result[key] = g
 	}
 
 	return result
+}
+
+func statementFromType(t string) *jen.Statement {
+	parts := strings.Split(t, ".")
+	path := strings.Join(parts[:len(parts)-1], ".")
+	name := parts[len(parts)-1]
+
+	if name == "interface {}" {
+		name = "any"
+	}
+
+	return jen.Qual(path, name)
 }
 
 // TODO: move following stuff diff place:
@@ -469,4 +604,15 @@ func merge[T map[K]V, K comparable, V any](hashmaps ...T) T {
 
 func ptr[T any](v T) *T {
 	return &v
+}
+
+func genFuncMarshalJSON(paramName, structName, otherStructName string) jen.Code {
+	return jen.Func().Params(jen.Id(paramName).Id(structName)).Id("MarshalJSON").Params().Params(jen.Index().Id("byte"), jen.Id("error")).Block(jen.Return().Qual("encoding/json", "Marshal").Call(
+		jen.Struct(jen.Id(otherStructName), jen.Id("ResourceType").String().Tag(map[string]string{
+			"json": "resourceType,omitempty",
+		},
+		)).Values(jen.Id(otherStructName).Op(":").Id(otherStructName).Call(jen.Id(paramName)), jen.Id("ResourceType").Op(":").Id(paramName).Dot("ResourceType").Call())))
+}
+func genFuncUnmarshal(structName string) jen.Code {
+	return jen.Func().Id(fmt.Sprintf("Unmarshal%s", structName)).Params(jen.Id("b").Index().Byte()).Params(jen.Id("res").Id(structName), jen.Id("err").Error()).Block(jen.If(jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(jen.Id("b"), jen.Op("&").Id("res")), jen.Id("err").Op("!=").Id("nil")).Block(jen.Return().List(jen.Id("res"), jen.Id("err"))), jen.Return().List(jen.Id("res"), jen.Id("nil")))
 }
