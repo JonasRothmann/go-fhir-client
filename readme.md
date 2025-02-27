@@ -39,6 +39,7 @@ import (
 	"log"
 	"github.com/jonasrothmann/go-fhir-client/r5"
 	"github.com/jonasrothmann/go-fhir-client/r5/valuesets"
+	"github.com/jonasrothmann/go-fhir-client/query"
 )
 
 func main() {
