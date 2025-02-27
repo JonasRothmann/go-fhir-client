@@ -2,6 +2,7 @@ package custom
 
 import (
 	"context"
+	"fmt"
 
 	fhirclient "github.com/jonasrothmann/go-fhir-client"
 	"github.com/jonasrothmann/go-fhir-client/query"
@@ -24,6 +25,13 @@ func (r Reference[T]) Read(ctx context.Context, client *fhirclient.Client, summa
 
 func (r Reference[T]) ResourceType() string {
 	return "Reference"
+}
+
+func NewReference[T fhirclient.Resource](id string) Reference[T] {
+	var ref T
+	return Reference[T]{
+		Reference: fhirclient.Ptr(fmt.Sprintf("%s/%s", ref.ResourceType(), id)),
+	}
 }
 
 // http://hl7.org/fhir/StructureDefinition/CodeableReference
