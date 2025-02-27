@@ -18,15 +18,6 @@ This is a Go client for interacting with FHIR (Fast Healthcare Interoperability 
 - [ ] **Documentation:** Provide detailed API documentation, usage guides, and error case documentation.
 - [ ] **Code Generation Rewrite:** Improve code generation for better maintainability and flexibility.
 
-### Future Features:
-- **Batch/Transaction Operations:** Implement `$batch` and `$transaction` operations for efficient handling of multiple requests.
-- **FHIRPath Evaluation:** Implement FHIRPath evaluation for data extraction and filtering.
-- **Terminology Services:** Implement operations like `$validate-code`, `$lookup`, and `$expand`.
-- **Data Streaming/WebSockets:** Implement FHIR subscriptions using WebSockets for real-time data updates.
-- **Smart On FHIR:** Implement support for SMART on FHIR authorization flows and launch contexts.
-- **Message Definition Support:** Implement support for FHIR messaging and MessageDefinition resources.
-- **Questionnaire Resource Support:** Implement support for Questionnaire and QuestionnaireResponse resources.
-
 ## Installation
 
 ```bash
@@ -78,6 +69,16 @@ func main() {
 	fmt.Printf("created patient with name %s", *readPatient.Name[0].Text)
 }
 ```
+
+
+### Future Features:
+- **Batch/Transaction Operations:** Implement `$batch` and `$transaction` operations for efficient handling of multiple requests.
+- **FHIRPath Evaluation:** Implement FHIRPath evaluation for data extraction and filtering.
+- **Terminology Services:** Implement operations like `$validate-code`, `$lookup`, and `$expand`.
+- **Data Streaming/WebSockets:** Implement FHIR subscriptions using WebSockets for real-time data updates.
+- **Smart On FHIR:** Implement support for SMART on FHIR authorization flows and launch contexts.
+- **Message Definition Support:** Implement support for FHIR messaging and MessageDefinition resources.
+- **Questionnaire Resource Support:** Implement support for Questionnaire and QuestionnaireResponse resources.
 
 ## Contributing
 Contributions are welcome, but expect that the whole api might change at any moment.
